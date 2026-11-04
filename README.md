@@ -1,121 +1,147 @@
-# 🚀 DataQuery AI: Text-to-SQL Agent
+# DataQuery AI: Text-to-SQL Agent
 
-DataQuery AI is a full-stack, AI-powered application that allows users to ask questions in plain English and get answers from their data. It automatically generates SQL, runs it securely, visualizes the results, and provides a downloadable table.
+DataQuery AI is a full-stack application for asking questions about data in plain English. It uses a Groq-hosted language model to generate SQLite queries, runs eligible queries against a connected database, and displays the results in a chat interface with optional charts and CSV export.
 
-## ✨ Features
+## Features
 
-- **Multi-Format Data Ingestion:** Upload `.csv`, `.xlsx` (multi-sheet Excel), `.sqlite`, or `.db` files.
-- **Intelligent Schema Grounding:** The AI automatically reads the database schema, including foreign keys, and joins tables when necessary.
-- **Self-Correcting AI:** If the generated SQL fails, the agent catches the error and retries up to 2 times.
-- **Safe Execution:** SQL is strictly validated using `sqlglot` to ensure only `SELECT` statements are run. Connections are read-only.
-- **Data Visualization:** Automatically generates bar/line charts using Matplotlib for compatible data.
-- **Ambiguity Handling:** Asks clarifying questions (e.g., "Did you mean order_date or delivery_date?").
-- **User Authentication:** Secure JWT-based Signup and Login system with password hashing.
-- **Modern UI:** A beautiful, DeepSeek-inspired dark mode interface built with React and Tailwind CSS.
-- **Export Results:** Download query results as a `.csv` file with dynamic, keyword-based filenames.
+- **Data uploads:** Import CSV, multi-sheet Excel (`.xlsx`), and SQLite (`.sqlite`, `.sqlite3`, or `.db`) files.
+- **Schema-aware SQL generation:** The backend reads table and column names and includes the schema in the prompt used to generate SQL.
+- **Query retries:** If generated SQL fails validation or execution, the agent can retry up to the configured number of times.
+- **Read-only query execution:** Generated statements are checked with SQLGlot and database connections are opened read-only.
+- **Charts and CSV export:** Display compatible query results as charts and download result tables as CSV files.
+- **Clarification prompts:** Ask follow-up questions when the request may be ambiguous.
+- **Accounts:** Sign up and log in with password hashing and bearer-token authentication.
+- **Demo database:** Explore sample e-commerce customers, products, orders, and order items.
 
----
+## Tech stack
 
-## 🛠️ Tech Stack
+| Area | Technologies |
+| --- | --- |
+| Backend | Python, FastAPI, Groq API, SQLGlot, Pandas, SQLite |
+| Authentication | Passlib, Python-Jose, JWT |
+| Frontend | React, TypeScript, Vite, Tailwind CSS |
+| UI libraries | Lucide React, React Syntax Highlighter |
+| Charts | Matplotlib |
 
-**Backend:**
-- **FastAPI** (Web framework)
-- **Groq API** (LLM for SQL generation)
-- **SQLGlot** (SQL parsing and security validation)
-- **Pandas** (Data ingestion and processing)
-- **SQLite** (Temporary session databases)
-- **Passlib & Python-Jose** (Authentication and JWT)
+## Requirements
 
-**Frontend:**
-- **React + Vite + TypeScript**
-- **Tailwind CSS** (Styling)
-- **Lucide React** (Icons)
-- **React Syntax Highlighter** (SQL code display)
+- Python 3.10 or later
+- Node.js and npm
+- A [Groq API key](https://console.groq.com/keys)
 
----
+## Getting started
 
-## 🚀 Getting Started
+### 1. Configure and run the backend
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- A free [Groq API Key](https://console.groq.com/keys)
+From the project root, change to the backend directory:
 
-### 1. Backend Setup
-
-
-Open a terminal and navigate to the backend folder:
-```bash
+```powershell
 cd backend
-Create and activate a virtual environment:
+```
 
-bash
-# Windows
+Create and activate a virtual environment, then install the Python dependencies:
+
+```powershell
 python -m venv venv
-venv\Scripts\activate
-
-# Mac/Linux
-python3 -m venv venv
-source venv/bin/activate
-
-Install the dependencies:
-
-bash
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
 
-Create a .env file in the backend folder:
+On macOS or Linux, activate the environment with:
 
-env
-GROQ_API_KEY=gsk_your_actual_groq_key_here
-LLM_MODEL=openai/gpt-oss-120b
+```bash
+source venv/bin/activate
+```
+
+Create `backend/.env` and add your Groq API key. The remaining values are optional:
+
+```dotenv
+GROQ_API_KEY=your_actual_groq_api_key
+LLM_MODEL=llama-3.3-70b-versatile
 ROW_LIMIT=200
 MAX_RETRIES=2
 DB_PATH=data/ecommerce.db
 CORS_ORIGINS=http://localhost:5173
-Generate the demo database:
+```
 
-bash
+`MAX_RETRIES=2` allows up to two retries after the initial attempt. `LLM_MODEL` must be a model available to your Groq account. Keep `.env` and API keys private.
+
+The demo database is included in `backend/data/ecommerce.db`. If it is missing, generate it from the `backend` directory:
+
+```powershell
 python -m app.setup_db
-Start the FastAPI server:
+```
 
-bash
+**Running this script deletes and recreates the database at `DB_PATH`. Back it up first if it contains data you need.**
+
+Start the API from the `backend` directory:
+
+```powershell
 uvicorn app.main:app --reload --port 8000
-The backend API docs will be available at http://127.0.0.1:8000/docs.
+```
 
-2. Frontend Setup
-Open a new terminal and navigate to the frontend folder:
+The API runs at `http://127.0.0.1:8000`. Interactive documentation is available at `http://127.0.0.1:8000/docs`, and the health check is at `http://127.0.0.1:8000/health`.
 
-bash
+### 2. Run the frontend
+
+Open a second terminal at the project root and run:
+
+```powershell
 cd frontend
-Install dependencies:
-
-bash
 npm install
-Start the development server:
-
-bash
 npm run dev
-Open your browser and go to http://localhost:5173. You can now sign up, log in, upload data, and start asking questions!
+```
 
-📂 Project Structure
-text
+Open `http://localhost:5173`. The Vite development server proxies API requests to `http://127.0.0.1:8000`.
+
+## Using the app
+
+1. Sign up and log in.
+2. Choose **Load Demo DB** or upload a supported file.
+3. Ask a question about the connected data.
+4. Answer a clarification prompt if one appears.
+5. Review the generated SQL, answer, results table, and any chart. Use **Export CSV** to download the results.
+
+CSV uploads are imported as a table, and each Excel sheet is imported as a separate table. Uploaded databases are copied for the session and queried through a read-only connection.
+
+## API endpoints
+
+All application endpoints are under `/api`:
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/auth/signup` | Create an account |
+| `POST` | `/api/auth/login` | Log in and receive a bearer token |
+| `GET` | `/api/auth/me` | Get the current authenticated user |
+| `POST` | `/api/sessions/demo` | Create a session using the demo database |
+| `POST` | `/api/sessions` | Upload a file and create a data session |
+| `POST` | `/api/ask` | Ask a question about a session; requires authentication |
+
+## Project structure
+
+```text
 text2sql-agent/
 ├── backend/
 │   ├── app/
-│   │   ├── core/          # Agent logic, LLM, SQL validator, Presenter
-│   │   ├── auth.py        # JWT & Password Hashing
-│   │   ├── config.py      # Environment variables
-│   │   ├── main.py        # FastAPI app entry point
-│   │   ├── routes.py      # API endpoints
-│   │   └── setup_db.py    # Script to generate demo DB
-│   ├── data/              # SQLite databases (generated)
+│   │   ├── core/                 # SQL generation, validation, imports, and result presentation
+│   │   ├── auth.py               # Password hashing and JWT authentication
+│   │   ├── config.py             # Environment-based configuration
+│   │   ├── main.py               # FastAPI application
+│   │   ├── routes.py             # API endpoints
+│   │   └── setup_db.py           # Demo database generator
+│   ├── data/                     # Demo and local user SQLite databases
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── components/    # DataTable, SqlBlock, AuthScreen
-│   │   ├── App.tsx        # Main Chat UI
-│   │   ├── AuthContext.tsx# Global Auth state
-│   │   └── api.ts         # Fetch wrappers with JWT headers
+│   │   ├── components/           # Data table, SQL display, and authentication UI
+│   │   ├── App.tsx               # Main chat interface
+│   │   ├── AuthContext.tsx        # Frontend authentication state
+│   │   └── api.ts                # API request helpers
 │   ├── package.json
-│   └── vite.config.ts     # Vite & Proxy configuration
+│   └── vite.config.ts            # Development server and API proxy
 └── README.md
+```
+
+## Deployment note
+
+This project is configured for local development. Before exposing it to users, configure a strong, private JWT signing key (the current signing key is hard-coded in `backend/app/auth.py`), review authentication and upload limits, and use an appropriately secured deployment configuration.
