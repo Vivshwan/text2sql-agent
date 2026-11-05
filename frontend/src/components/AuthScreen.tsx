@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { Database, Mail, Lock, User, Loader2 } from "lucide-react";
 
+// Hardcoded production backend URL
+const API_BASE = "https://text2sql-agent-8pia.onrender.com";
+
 export function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -15,7 +18,7 @@ export function AuthScreen() {
     e.preventDefault();
     setBusy(true);
     setError("");
-    const API_BASE = "https://text2sql-agent-8pia.onrender.com";
+
     const url = isLogin ? `${API_BASE}/api/auth/login` : `${API_BASE}/api/auth/signup`;
     const body = isLogin ? { email, password } : { name, email, password };
 
@@ -25,6 +28,12 @@ export function AuthScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+
+      // Handle non-JSON responses (like HTML error pages)
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Backend server is starting up. Please wait 30 seconds and try again.");
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Something went wrong");
