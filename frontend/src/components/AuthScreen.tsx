@@ -15,7 +15,7 @@ export function AuthScreen() {
     e.preventDefault();
     setBusy(true);
     setError("");
-    const API_BASE = import.meta.env.VITE_API_URL || "";
+    const API_BASE = "https://text2sql-agent-8pia.onrender.com";
     const url = isLogin ? `${API_BASE}/api/auth/login` : `${API_BASE}/api/auth/signup`;
     const body = isLogin ? { email, password } : { name, email, password };
 
