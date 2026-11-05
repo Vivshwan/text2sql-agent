@@ -1,7 +1,7 @@
 import type { SessionMeta, AskResponse } from "./types";
 
 // Hardcoded production backend URL
-const API_BASE = "https://text2sql-agent-8pia.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem("token");

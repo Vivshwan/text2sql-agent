@@ -3,7 +3,7 @@ import { useAuth } from "../AuthContext";
 import { Database, Mail, Lock, User, Loader2 } from "lucide-react";
 
 // Hardcoded production backend URL
-const API_BASE = "https://text2sql-agent-8pia.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
