@@ -15,8 +15,8 @@ export function AuthScreen() {
     e.preventDefault();
     setBusy(true);
     setError("");
-
-    const url = isLogin ? "/api/auth/login" : "/api/auth/signup";
+    const API_BASE = import.meta.env.VITE_API_URL || "";
+    const url = isLogin ? `${API_BASE}/api/auth/login` : `${API_BASE}/api/auth/signup`;
     const body = isLogin ? { email, password } : { name, email, password };
 
     try {
