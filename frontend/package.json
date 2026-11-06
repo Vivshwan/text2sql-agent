@@ -4,13 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npx tailwindcss -i ./src/tailwind.css -o ./src/index.css --watch\" \"vite\"",
-    "build": "npx tailwindcss -i ./src/tailwind.css -o ./src/index.css && tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
-    "lucide-react": "^1.66.0",
+    "lucide-react": "^1.70.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-syntax-highlighter": "^16.1.2"
@@ -21,12 +21,11 @@
     "@types/react-dom": "^19.3.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^6.1.2",
-    "autoprefixer": "^10.6.2",
-    "concurrently": "^10.0.6",
-    "oxlint": "^1.89.0",
-    "postcss": "^8.5.32",
-    "tailwindcss": "^3.4.19",
+    "autoprefixer": "^10.4.19",
+    "oxlint": "^1.90.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1",
     "typescript": "~7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.6"
   }
 }
