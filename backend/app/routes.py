@@ -1,5 +1,8 @@
 import os, shutil, tempfile
+import pandas as pd
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi.responses import FileResponse
+
 from .sessions import store, SessionState
 from .schemas import SessionMeta, AskRequest, AskResponse
 from .config import DB_PATH
@@ -12,10 +15,14 @@ router = APIRouter(prefix="/api")
 
 def _session_meta(s: SessionState) -> SessionMeta:
     return SessionMeta(
-        id=s.id, source=s.meta.get("source", "unknown"),
-        table=s.meta.get("table"), row_count=s.meta.get("row_count"),
-        columns=s.meta.get("columns", []), schema_text=s.schema_string(),
+        id=s.id, 
+        source=s.meta.get("source", "unknown"),
+        table=s.meta.get("table"), 
+        row_count=s.meta.get("row_count"),
+        columns=s.meta.get("columns", []), 
+        schema_text=s.schema_string(),
         date_columns=s.date_columns(),
+        cleanup_report=s.meta.get("cleanup_report", []) # <-- Added cleanup report
     )
 
 @router.post("/sessions/demo", response_model=SessionMeta)
@@ -52,7 +59,8 @@ async def create_upload_session(file: UploadFile = File(...), table_name: str = 
                 "source": file.filename, 
                 "table": info["table"], 
                 "row_count": info["row_count"], 
-                "columns": info["columns"]
+                "columns": info["columns"],
+                "cleanup_report": info.get("cleanup_report", [])
             },
         ))
         return _session_meta(s)
@@ -68,7 +76,7 @@ async def create_upload_session(file: UploadFile = File(...), table_name: str = 
 def ask(req: AskRequest):
     s = store.get(req.session_id)
     if not s: 
-        raise HTTPException(404, "Session expired.")
+        raise HTTPException(404, "Session expired or not found.")
 
     if not req.clarification:
         amb = check_ambiguity(s.conn(), req.question)
@@ -83,3 +91,36 @@ def ask(req: AskRequest):
 
     presented = present(req.question, raw)
     return AskResponse(status="ok", **presented)
+
+@router.get("/sessions/{session_id}/export")
+def export_cleaned_dataset(session_id: str):
+    s = store.get(session_id)
+    if not s:
+        raise HTTPException(404, "Session not found or expired.")
+
+    conn = s.conn()
+    cursor = conn.cursor()
+    
+    # Get the first table name (our primary table)
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' LIMIT 1")
+    row = cursor.fetchone()
+    if not row:
+        raise HTTPException(400, "No tables found in session.")
+    
+    table_name = row[0]
+    
+    # Read the entire table into a pandas DataFrame
+    df = pd.read_sql_query(f'SELECT * FROM "{table_name}"', conn)
+    
+    # Save to a temporary CSV file
+    fd, tmp_path = tempfile.mkstemp(suffix=".csv", prefix="cleaned_dataset_")
+    os.close(fd)
+    df.to_csv(tmp_path, index=False)
+    
+    # Return the file
+    source_name = s.meta.get('source', 'dataset').split('.')[0]
+    return FileResponse(
+        path=tmp_path,
+        filename=f"cleaned_{source_name}.csv",
+        media_type="text/csv"
+    )

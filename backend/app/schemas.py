@@ -9,6 +9,7 @@ class SessionMeta(BaseModel):
     columns: List[str] = []
     schema_text: str
     date_columns: List[str] = []
+    cleanup_report: List[str] = []
 
 class AskRequest(BaseModel):
     session_id: str

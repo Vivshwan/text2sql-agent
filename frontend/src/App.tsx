@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import type { AskResponse, SessionMeta } from "./types";
-import { ask, createDemoSession, createCsvSession } from "./api";
+import { ask, createDemoSession, createCsvSession, downloadCleanedDataset } from "./api";
 import { DataTable } from "./components/DataTable";
 import { SqlBlock } from "./components/SqlBlock";
-import { Database, UploadCloud, Send, Sparkles, AlertCircle, Bot, User, Trash2, Plus, MessageSquare } from "lucide-react";
-
+import { Database, UploadCloud, Send, Sparkles, AlertCircle, Bot, User, Trash2, Plus, MessageSquare, Download } from "lucide-react";
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string | AskResponse; isClarification?: boolean; };
 
 export default function App() {
@@ -50,6 +49,8 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#0f111a] text-gray-200 font-sans overflow-hidden selection:bg-brand-500/30">
+      
+      {/* Sidebar */}
       <aside className="w-[260px] bg-[#161926] border-r border-[#1f2335] flex flex-col shrink-0">
         <div className="p-4 flex items-center gap-2"><Database className="w-6 h-6 text-brand-500" /><h1 className="font-semibold text-lg text-white">DataQuery AI</h1></div>
         <div className="px-4 pb-4"><button onClick={() => setMessages([])} className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white py-2.5 rounded-lg text-sm font-medium"><Plus size={16} /> New Chat</button></div>
@@ -59,6 +60,7 @@ export default function App() {
           {messages.length > 0 && <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#1f2335] text-sm border border-gray-700/50"><MessageSquare size={14} className="text-brand-500" /><span className="truncate">Active Data Query</span></div>}
         </div>
 
+        {/* Database Connection & Profile */}
         <div className="p-3 border-t border-[#1f2335] space-y-3">
           {!session ? (
             <div className="space-y-2">
@@ -68,17 +70,58 @@ export default function App() {
               </label>
             </div>
           ) : (
-            <div className="bg-[#1f2335] rounded-lg p-3 text-xs border border-gray-700/50 flex justify-between items-center">
-              <div className="truncate pr-2"><p className="text-brand-400 font-medium truncate">{session.source}</p><p className="text-gray-500">{session.row_count} rows</p></div>
-              <button onClick={() => { setSession(null); setMessages([]); }} className="text-gray-500 hover:text-red-400"><Trash2 size={14} /></button>
+            <div className="bg-[#1f2335] rounded-lg p-3 text-xs border border-gray-700/50 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <div className="truncate pr-2">
+                  <p className="text-brand-400 font-medium truncate" title={session.source}>{session.source}</p>
+                  <p className="text-gray-500">{session.row_count} rows</p>
+                </div>
+                <button onClick={() => { setSession(null); setMessages([]); }} className="text-gray-500 hover:text-red-400" title="Disconnect"><Trash2 size={14} /></button>
+              </div>
+              
+              {/* Export Clean Data Button */}
+              <button 
+                onClick={() => downloadCleanedDataset(session.id, session.source)}
+                className="w-full flex items-center justify-center gap-2 bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 py-1.5 rounded transition-colors mt-1"
+              >
+                <Download size={12} /> Export Clean Data
+              </button>
             </div>
           )}
+          
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold shrink-0">A</div>
+              <div className="truncate text-sm text-gray-300">Analyst</div>
+            </div>
+          </div>
         </div>
       </aside>
 
+      {/* Main Chat Area */}
       <main className="flex-1 flex flex-col relative">
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-3xl mx-auto flex flex-col gap-8">
+            
+            {/* Data Cleaning Report Banner */}
+            {session?.cleanup_report && session.cleanup_report.length > 0 && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 shadow-lg animate-fade-in-up">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-green-500/20 rounded-lg shrink-0 text-green-400">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-green-400 font-bold text-lg mb-2">Data Auto-Cleaned</h3>
+                    <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+                      {session.cleanup_report.map((action, i) => (
+                        <li key={i}>{action}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {messages.length === 0 && (
               <div className="text-center mt-32">
                 <div className="inline-flex items-center justify-center p-4 bg-brand-500/10 rounded-2xl mb-6"><Sparkles size={32} className="text-brand-500" /></div>

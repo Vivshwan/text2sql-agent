@@ -1,5 +1,6 @@
 import type { SessionMeta, AskResponse } from "./types";
 
+// Hardcoded production backend URL
 const API_BASE = "https://text2sql-agent-8pia.onrender.com";
 
 const j = async (r: Response) => {
@@ -26,4 +27,23 @@ export async function ask(session_id: string, question: string, clarification?: 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ session_id, question, clarification }),
   }));
+}
+
+// NEW: Download the clean, preprocessed dataset
+export async function downloadCleanedDataset(session_id: string, sourceName: string) {
+  const res = await fetch(`${API_BASE}/api/sessions/${session_id}/export`);
+  if (!res.ok) throw new Error("Failed to export dataset");
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  
+  const fileName = sourceName.split('.')[0] || "dataset";
+  a.download = `cleaned_${fileName}.csv`;
+  
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 }
