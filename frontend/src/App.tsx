@@ -3,14 +3,11 @@ import type { AskResponse, SessionMeta } from "./types";
 import { ask, createDemoSession, createCsvSession } from "./api";
 import { DataTable } from "./components/DataTable";
 import { SqlBlock } from "./components/SqlBlock";
-import { AuthScreen } from "./components/AuthScreen";
-import { useAuth } from "./AuthContext";
-import { Database, UploadCloud, Send, Sparkles, AlertCircle, Bot, User, Trash2, LogOut, Plus, MessageSquare } from "lucide-react";
+import { Database, UploadCloud, Send, Sparkles, AlertCircle, Bot, User, Trash2, Plus, MessageSquare } from "lucide-react";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string | AskResponse; isClarification?: boolean; };
 
 export default function App() {
-  const { user, logout } = useAuth();
   const [session, setSession] = useState<SessionMeta | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState("");
@@ -19,7 +16,6 @@ export default function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
-  if (!user) return <AuthScreen />;
 
   async function handleDemo() {
     setBusy(true);
@@ -77,14 +73,6 @@ export default function App() {
               <button onClick={() => { setSession(null); setMessages([]); }} className="text-gray-500 hover:text-red-400"><Trash2 size={14} /></button>
             </div>
           )}
-          
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold shrink-0">{user.name.charAt(0).toUpperCase()}</div>
-              <div className="truncate text-sm text-gray-300">{user.name}</div>
-            </div>
-            <button onClick={logout} className="text-gray-500 hover:text-white"><LogOut size={16} /></button>
-          </div>
         </div>
       </aside>
 
