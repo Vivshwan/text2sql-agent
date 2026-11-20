@@ -10,10 +10,11 @@ def _extract_sql(text: str) -> str:
     if ";" in text: text = text.split(";")[0] + ";"
     return text.strip()
 
-def run_query(conn, question: str, clarification: str = "") -> dict:
+def run_query(session, question: str, history: list = [], clarification: str = "") -> dict:
     error_ctx = ""
+    sql = ""
     for attempt in range(MAX_RETRIES + 1):
-        prompt = build_sql_prompt(conn, question, clarification, error_ctx)
+        prompt = build_sql_prompt(session, question, history, clarification, error_ctx)
         sql = _extract_sql(complete(prompt))
 
         if not is_safe_select(sql):
@@ -22,7 +23,7 @@ def run_query(conn, question: str, clarification: str = "") -> dict:
 
         safe_sql = enforce_limit(sql)
         try:
-            cur = conn.cursor()
+            cur = session.conn().cursor()
             cur.execute(safe_sql)
             columns = [d[0] for d in cur.description]
             rows = [tuple(r) for r in cur.fetchall()]

@@ -22,7 +22,7 @@ def _session_meta(s: SessionState) -> SessionMeta:
         columns=s.meta.get("columns", []), 
         schema_text=s.schema_string(),
         date_columns=s.date_columns(),
-        cleanup_report=s.meta.get("cleanup_report", []) # <-- Added cleanup report
+        cleanup_report=s.meta.get("cleanup_report", [])
     )
 
 @router.post("/sessions/demo", response_model=SessionMeta)
@@ -39,7 +39,6 @@ async def create_upload_session(file: UploadFile = File(...), table_name: str = 
     if not filename.endswith(valid_exts):
         raise HTTPException(400, f"Only {', '.join(valid_exts)} files are accepted.")
     
-    # Save file temporarily
     suffix = os.path.splitext(filename)[1]
     tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
     with tmp as f: 
@@ -67,16 +66,14 @@ async def create_upload_session(file: UploadFile = File(...), table_name: str = 
     except Exception as e:
         raise HTTPException(500, f"Error processing file: {str(e)}")
     finally:
-        try:
-            os.remove(tmp.name)
-        except Exception:
-            pass     
+        try: os.remove(tmp.name)
+        except Exception: pass     
 
 @router.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest):
     s = store.get(req.session_id)
     if not s: 
-        raise HTTPException(404, "Session expired or not found.")
+        raise HTTPException(404, "Session expired.")
 
     if not req.clarification:
         amb = check_ambiguity(s.conn(), req.question)
@@ -84,7 +81,8 @@ def ask(req: AskRequest):
             return AskResponse(status="needs_clarification", clarification_question=amb)
 
     with s.lock:
-        raw = run_query(s.conn(), req.question, req.clarification or "")
+        # Pass history to agent
+        raw = run_query(s.conn(), req.question, history=req.history, clarification=req.clarification or "")
 
     if raw["error"]:
         return AskResponse(status="error", sql=raw["sql"], error=raw["error"])
@@ -100,24 +98,18 @@ def export_cleaned_dataset(session_id: str):
 
     conn = s.conn()
     cursor = conn.cursor()
-    
-    # Get the first table name (our primary table)
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' LIMIT 1")
     row = cursor.fetchone()
     if not row:
         raise HTTPException(400, "No tables found in session.")
     
     table_name = row[0]
-    
-    # Read the entire table into a pandas DataFrame
     df = pd.read_sql_query(f'SELECT * FROM "{table_name}"', conn)
     
-    # Save to a temporary CSV file
     fd, tmp_path = tempfile.mkstemp(suffix=".csv", prefix="cleaned_dataset_")
     os.close(fd)
     df.to_csv(tmp_path, index=False)
     
-    # Return the file
     source_name = s.meta.get('source', 'dataset').split('.')[0]
     return FileResponse(
         path=tmp_path,

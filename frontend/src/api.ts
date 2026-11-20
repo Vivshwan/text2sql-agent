@@ -1,7 +1,6 @@
 import type { SessionMeta, AskResponse } from "./types";
 
-// Hardcoded production backend URL
-const API_BASE = "https://text2sql-agent-8pia.onrender.com";
+const API_BASE = "https://text2sql-agent-8pia.onrender.com"; // Ensure this is your actual backend URL
 
 const j = async (r: Response) => {
   if (!r.ok) {
@@ -21,15 +20,14 @@ export async function createCsvSession(file: File): Promise<SessionMeta> {
   return j(await fetch(`${API_BASE}/api/sessions`, { method: "POST", body: fd }));
 }
 
-export async function ask(session_id: string, question: string, clarification?: string): Promise<AskResponse> {
+export async function ask(session_id: string, question: string, history: any[] = [], clarification?: string): Promise<AskResponse> {
   return j(await fetch(`${API_BASE}/api/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id, question, clarification }),
+    body: JSON.stringify({ session_id, question, history, clarification }),
   }));
 }
 
-// NEW: Download the clean, preprocessed dataset
 export async function downloadCleanedDataset(session_id: string, sourceName: string) {
   const res = await fetch(`${API_BASE}/api/sessions/${session_id}/export`);
   if (!res.ok) throw new Error("Failed to export dataset");

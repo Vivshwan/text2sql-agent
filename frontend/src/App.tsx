@@ -4,6 +4,7 @@ import { ask, createDemoSession, createCsvSession, downloadCleanedDataset } from
 import { DataTable } from "./components/DataTable";
 import { SqlBlock } from "./components/SqlBlock";
 import { Database, UploadCloud, Send, Sparkles, AlertCircle, Bot, User, Trash2, Plus, MessageSquare, Download } from "lucide-react";
+
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string | AskResponse; isClarification?: boolean; };
 
 export default function App() {
@@ -34,15 +35,28 @@ export default function App() {
     if (!session || !question.trim()) return;
     const userQ = question;
     setQuestion(""); setBusy(true);
+    
     setMessages(prev => [...prev, { id: Date.now().toString(), role: "user", content: userQ }]);
+
+    const chatHistory = messages.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : (m.content as AskResponse).answer || "",
+      sql: typeof m.content === 'object' ? (m.content as AskResponse).sql : undefined
+    }));
     
     try {
-      const res = await ask(session.id, userQ, clarification || undefined);
-      if (res.status === "needs_clarification") setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: res, isClarification: true }]);
-      else if (res.status === "error") setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: `Error: ${res.error}` }]);
-      else { setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: res }]); setClarification(""); }
+      const res = await ask(session.id, userQ, chatHistory, clarification || undefined);
+      
+      if (res.status === "needs_clarification") {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: res, isClarification: true }]);
+      } else if (res.status === "error") {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: `Error: ${res.error}` }]);
+      } else {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: res }]);
+        setClarification(""); 
+      }
     } catch (e: any) { 
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: `Network error: ${e.message}` }]); 
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: `Network error: ${e.message}` }]);
     }
     setBusy(false);
   }
@@ -60,7 +74,6 @@ export default function App() {
           {messages.length > 0 && <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#1f2335] text-sm border border-gray-700/50"><MessageSquare size={14} className="text-brand-500" /><span className="truncate">Active Data Query</span></div>}
         </div>
 
-        {/* Database Connection & Profile */}
         <div className="p-3 border-t border-[#1f2335] space-y-3">
           {!session ? (
             <div className="space-y-2">
@@ -78,17 +91,11 @@ export default function App() {
                 </div>
                 <button onClick={() => { setSession(null); setMessages([]); }} className="text-gray-500 hover:text-red-400" title="Disconnect"><Trash2 size={14} /></button>
               </div>
-              
-              {/* Export Clean Data Button */}
-              <button 
-                onClick={() => downloadCleanedDataset(session.id, session.source)}
-                className="w-full flex items-center justify-center gap-2 bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 py-1.5 rounded transition-colors mt-1"
-              >
+              <button onClick={() => downloadCleanedDataset(session.id, session.source)} className="w-full flex items-center justify-center gap-2 bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 py-1.5 rounded transition-colors mt-1">
                 <Download size={12} /> Export Clean Data
               </button>
             </div>
           )}
-          
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold shrink-0">A</div>
@@ -107,15 +114,11 @@ export default function App() {
             {session?.cleanup_report && session.cleanup_report.length > 0 && (
               <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 shadow-lg animate-fade-in-up">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-500/20 rounded-lg shrink-0 text-green-400">
-                    <Sparkles size={20} />
-                  </div>
+                  <div className="p-2 bg-green-500/20 rounded-lg shrink-0 text-green-400"><Sparkles size={20} /></div>
                   <div>
                     <h3 className="text-green-400 font-bold text-lg mb-2">Data Auto-Cleaned</h3>
                     <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                      {session.cleanup_report.map((action, i) => (
-                        <li key={i}>{action}</li>
-                      ))}
+                      {session.cleanup_report.map((action, i) => <li key={i}>{action}</li>)}
                     </ul>
                   </div>
                 </div>
@@ -157,7 +160,13 @@ export default function App() {
                         <p className="text-gray-200 text-base leading-relaxed mb-4">{(msg.content as AskResponse).answer}</p>
                         <SqlBlock sql={(msg.content as AskResponse).sql!} />
                         {(msg.content as AskResponse).chart && <div className="mt-5 border border-gray-700/50 rounded-xl overflow-hidden bg-white p-2"><img src={(msg.content as AskResponse).chart!} alt="Chart" className="w-full h-auto rounded" /></div>}
-                        {(msg.content as AskResponse).rows && (msg.content as AskResponse).rows.length > 0 && <DataTable columns={(msg.content as AskResponse).columns} rows={(msg.content as AskResponse).rows} />}
+                        {(msg.content as AskResponse).rows && (msg.content as AskResponse).rows.length > 0 && (
+                          <DataTable 
+                            columns={(msg.content as AskResponse).columns} 
+                            rows={(msg.content as AskResponse).rows} 
+                            question={(msg.content as AskResponse).answer || "data"} 
+                          />
+                        )}
                       </div>
                     )}
                   </div>

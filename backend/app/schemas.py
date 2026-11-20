@@ -15,6 +15,7 @@ class AskRequest(BaseModel):
     session_id: str
     question: str = Field(min_length=1, max_length=1000)
     clarification: Optional[str] = None
+    history: List[dict] = [] # <-- Added to receive chat history
 
 class AskResponse(BaseModel):
     status: str
