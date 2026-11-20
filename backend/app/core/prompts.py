@@ -1,7 +1,8 @@
 from .schema import extract_schema_string
 
-def build_sql_prompt(session, question: str, history: list, clarification: str = "", error: str = "") -> str:
-    schema = extract_schema_string(session.conn())
+def build_sql_prompt(conn, question: str, history: list, clarification: str = "", error: str = "") -> str:
+    # conn is now the sqlite3.Connection passed from run_query
+    schema = extract_schema_string(conn)
     
     parts = [
         "You are an expert SQLite data analyst. Write ONE SELECT statement answering the user's question.",
@@ -16,7 +17,7 @@ def build_sql_prompt(session, question: str, history: list, clarification: str =
     # Inject Chat History for follow-up questions
     if history:
         parts.append("--- CONVERSATION HISTORY ---")
-        for msg in history[-6:]: # Keep last 6 messages to save tokens
+        for msg in history[-6:]:
             if msg.get("role") == "user":
                 parts.append(f"User: {msg.get('content')}")
             elif msg.get("role") == "assistant" and msg.get("sql"):

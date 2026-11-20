@@ -14,6 +14,7 @@ def run_query(session, question: str, history: list = [], clarification: str = "
     error_ctx = ""
     sql = ""
     for attempt in range(MAX_RETRIES + 1):
+        # PASS the history to the prompt builder
         prompt = build_sql_prompt(session, question, history, clarification, error_ctx)
         sql = _extract_sql(complete(prompt))
 
