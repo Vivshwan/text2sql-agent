@@ -1,17 +1,16 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routes import router
+from .config import CORS_ORIGINS
 
 app = FastAPI(title="Text-to-SQL Agent")
 
-# Read CORS_ORIGINS from environment (comma-separated)
-cors_env = os.getenv("CORS_ORIGINS", "")
-origins = [o.strip() for o in cors_env.split(",") if o.strip()]
-
-# Fallback for local dev if env is empty
-if not origins:
-    origins = ["http://localhost:5173"]
+# Explicitly list your Vercel frontend URL(s)
+# If you have multiple (e.g., preview deployments), add them here
+origins = [
+    "http://localhost:5173",  # For local development
+    "https://text2sql-agent-7zu7.vercel.app",  # Your live Vercel frontend
+]
 
 app.add_middleware(
     CORSMiddleware,
