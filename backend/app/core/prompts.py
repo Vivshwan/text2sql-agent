@@ -14,7 +14,6 @@ def build_sql_prompt(conn, question: str, history: list, clarification: str = ""
         "",
     ]
     
-    # Inject Chat History for follow-up questions
     if history:
         parts.append("--- CONVERSATION HISTORY ---")
         for msg in history[-6:]:
